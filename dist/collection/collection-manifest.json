@@ -1,0 +1,87 @@
+{
+  "components": [
+    {
+      "tag": "winfun-data",
+      "dependencies": [
+        "context-consumer"
+      ],
+      "componentClass": "WFData",
+      "componentPath": "components/winfun-data/winfun-data.js",
+      "styles": {},
+      "props": [
+        {
+          "name": "src",
+          "type": "String",
+          "attr": "src"
+        }
+      ],
+      "states": [
+        {
+          "name": "data"
+        }
+      ],
+      "shadow": true
+    },
+    {
+      "tag": "winfun-list",
+      "dependencies": [
+        "context-consumer",
+        "winfun-player"
+      ],
+      "componentClass": "WFList",
+      "componentPath": "components/winfun-list/winfun-list.js",
+      "styles": {
+        "$": {
+          "stylePaths": [
+            "components/winfun-list/winfun-list.scss"
+          ]
+        }
+      },
+      "shadow": true
+    },
+    {
+      "tag": "winfun-player",
+      "dependencies": [
+        "context-consumer"
+      ],
+      "componentClass": "WFPlayer",
+      "componentPath": "components/winfun-player/winfun-player.js",
+      "styles": {
+        "$": {
+          "stylePaths": [
+            "components/winfun-player/winfun-player.scss"
+          ]
+        }
+      },
+      "props": [
+        {
+          "name": "favourite",
+          "type": "Boolean",
+          "mutable": true,
+          "reflectToAttr": true,
+          "attr": "favourite"
+        },
+        {
+          "name": "playerId",
+          "type": "Number",
+          "attr": "player-id"
+        }
+      ],
+      "shadow": true
+    }
+  ],
+  "collections": [
+    {
+      "name": "@stencil/state-tunnel",
+      "tags": [
+        "context-consumer"
+      ]
+    }
+  ],
+  "compiler": {
+    "name": "@stencil/core",
+    "version": "0.17.0",
+    "typescriptVersion": "3.2.2"
+  },
+  "bundles": []
+}

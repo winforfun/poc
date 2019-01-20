@@ -1,0 +1,36 @@
+{
+  "tags": [
+    {
+      "label": "winfun-data",
+      "description": "",
+      "attributes": [
+        {
+          "label": "src",
+          "description": "URL to toprateddata.xml",
+          "required": false
+        }
+      ]
+    },
+    {
+      "label": "winfun-list",
+      "description": "",
+      "attributes": []
+    },
+    {
+      "label": "winfun-player",
+      "description": "",
+      "attributes": [
+        {
+          "label": "favourite",
+          "description": "The player favourite indicator",
+          "required": false
+        },
+        {
+          "label": "player-id",
+          "description": "The player ID",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

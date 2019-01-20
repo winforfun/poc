@@ -1,0 +1,1 @@
+// winfun: CommonJS Main
