@@ -35,7 +35,6 @@ export class WFPlayer {
         }));
     }
     static get is() { return "winfun-player"; }
-    static get encapsulation() { return "shadow"; }
     static get properties() { return {
         "favourite": {
             "type": Boolean,

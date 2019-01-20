@@ -281,7 +281,6 @@ class WFData {
             h("slot", null)));
     }
     static get is() { return "winfun-data"; }
-    static get encapsulation() { return "shadow"; }
     static get properties() { return {
         "data": {
             "state": true

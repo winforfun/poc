@@ -19,8 +19,7 @@
         {
           "name": "data"
         }
-      ],
-      "shadow": true
+      ]
     },
     {
       "tag": "winfun-list",
@@ -36,8 +35,7 @@
             "components/winfun-list/winfun-list.scss"
           ]
         }
-      },
-      "shadow": true
+      }
     },
     {
       "tag": "winfun-player",
@@ -66,8 +64,7 @@
           "type": "Number",
           "attr": "player-id"
         }
-      ],
-      "shadow": true
+      ]
     }
   ],
   "collections": [

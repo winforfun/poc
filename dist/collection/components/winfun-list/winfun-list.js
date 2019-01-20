@@ -10,6 +10,5 @@ export class WFList {
         }));
     }
     static get is() { return "winfun-list"; }
-    static get encapsulation() { return "shadow"; }
     static get style() { return "/**style-placeholder:winfun-list:**/"; }
 }
