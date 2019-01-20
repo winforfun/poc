@@ -1,0 +1,11 @@
+@import "@material/button/mdc-button";
+@import "@material/icon-button/mdc-icon-button";
+@import "@material/card/mdc-card";
+
+.mdc-card__media-content {
+  padding: 1rem;
+}
+
+.mdc-button[aria-pressed=true] .mdc-button__icon {
+  fill: red;
+}
