@@ -5,7 +5,7 @@ import { Pack } from "../../data/pack";
 @Component({
   tag: "winfun-player",
   styleUrl: "winfun-player.scss",
-  shadow: true
+  shadow: false
 })
 export class WFPlayer {
   /**

@@ -5,7 +5,7 @@ import { Pack } from "../../data/pack";
 @Component({
   tag: "winfun-list",
   styleUrl: "winfun-list.scss",
-  shadow: true
+  shadow: false
 })
 export class WFList {
   render() {

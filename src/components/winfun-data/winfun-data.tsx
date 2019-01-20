@@ -5,7 +5,7 @@ import { Pack} from "../../data/pack"
 
 @Component({
   tag: "winfun-data",
-  shadow: true
+  shadow: false
 })
 export class WFData {
   /**
