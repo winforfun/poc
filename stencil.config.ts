@@ -10,7 +10,9 @@ export const config: Config = {
       importer: importer
     } as PluginOptions)
   ],
-
+  bundles: [
+    { components: [ 'winfun-data', 'winfun-list', 'winfun-player', 'context-consumer' ]}
+  ],
   outputTargets:[
     { type: 'dist' },
     { type: 'docs' },
