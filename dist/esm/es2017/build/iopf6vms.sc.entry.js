@@ -1,6 +1,331 @@
 import { h } from '../winfun.core.js';
 
-import { a as Tunnel } from './chunk-084e606b.js';
+function createCommonjsModule(fn, module) {
+	return module = { exports: {} }, fn(module, module.exports), module.exports;
+}
+
+var xmlToJSON_1 = createCommonjsModule(function (module) {
+/* Copyright 2015 William Summers, MetaTribal LLC
+ * adapted from https://developer.mozilla.org/en-US/docs/JXON
+ *
+ * Licensed under the MIT License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * @author William Summers
+ *
+ */
+
+var xmlToJSON = (function () {
+
+    this.version = "1.3.5";
+
+    var options = { // set up the default options
+        mergeCDATA: true, // extract cdata and merge with text
+        grokAttr: true, // convert truthy attributes to boolean, etc
+        grokText: true, // convert truthy text/attr to boolean, etc
+        normalize: true, // collapse multiple spaces to single space
+        xmlns: true, // include namespaces as attribute in output
+        namespaceKey: '_ns', // tag name for namespace objects
+        textKey: '_text', // tag name for text nodes
+        valueKey: '_value', // tag name for attribute values
+        attrKey: '_attr', // tag for attr groups
+        cdataKey: '_cdata', // tag for cdata nodes (ignored if mergeCDATA is true)
+        attrsAsObject: true, // if false, key is used as prefix to name, set prefix to '' to merge children and attrs.
+        stripAttrPrefix: true, // remove namespace prefixes from attributes
+        stripElemPrefix: true, // for elements of same name in diff namespaces, you can enable namespaces and access the nskey property
+        childrenAsArray: true // force children into arrays
+    };
+
+    var prefixMatch = new RegExp(/(?!xmlns)^.*:/);
+    var trimMatch = new RegExp(/^\s+|\s+$/g);
+
+    this.grokType = function (sValue) {
+        if (/^\s*$/.test(sValue)) {
+            return null;
+        }
+        if (/^(?:true|false)$/i.test(sValue)) {
+            return sValue.toLowerCase() === "true";
+        }
+        if (isFinite(sValue)) {
+            return parseFloat(sValue);
+        }
+        return sValue;
+    };
+
+    this.parseString = function (xmlString, opt) {
+        return this.parseXML(this.stringToXML(xmlString), opt);
+    };
+
+    this.parseXML = function (oXMLParent, opt) {
+
+        // initialize options
+        for (var key in opt) {
+            options[key] = opt[key];
+        }
+
+        var vResult = {},
+            nLength = 0,
+            sCollectedTxt = "";
+
+        // parse namespace information
+        if (options.xmlns && oXMLParent.namespaceURI) {
+            vResult[options.namespaceKey] = oXMLParent.namespaceURI;
+        }
+
+        // parse attributes
+        // using attributes property instead of hasAttributes method to support older browsers
+        if (oXMLParent.attributes && oXMLParent.attributes.length > 0) {
+            var vAttribs = {};
+
+            for (nLength; nLength < oXMLParent.attributes.length; nLength++) {
+                var oAttrib = oXMLParent.attributes.item(nLength);
+                vContent = {};
+                var attribName = '';
+
+                if (options.stripAttrPrefix) {
+                    attribName = oAttrib.name.replace(prefixMatch, '');
+
+                } else {
+                    attribName = oAttrib.name;
+                }
+
+                if (options.grokAttr) {
+                    vContent[options.valueKey] = this.grokType(oAttrib.value.replace(trimMatch, ''));
+                } else {
+                    vContent[options.valueKey] = oAttrib.value.replace(trimMatch, '');
+                }
+
+                if (options.xmlns && oAttrib.namespaceURI) {
+                    vContent[options.namespaceKey] = oAttrib.namespaceURI;
+                }
+
+                if (options.attrsAsObject) { // attributes with same local name must enable prefixes
+                    vAttribs[attribName] = vContent;
+                } else {
+                    vResult[options.attrKey + attribName] = vContent;
+                }
+            }
+
+            if (options.attrsAsObject) {
+                vResult[options.attrKey] = vAttribs;
+            }
+        }
+
+        // iterate over the children
+        if (oXMLParent.hasChildNodes()) {
+            for (var oNode, sProp, vContent, nItem = 0; nItem < oXMLParent.childNodes.length; nItem++) {
+                oNode = oXMLParent.childNodes.item(nItem);
+
+                if (oNode.nodeType === 4) {
+                    if (options.mergeCDATA) {
+                        sCollectedTxt += oNode.nodeValue;
+                    } else {
+                        if (vResult.hasOwnProperty(options.cdataKey)) {
+                            if (vResult[options.cdataKey].constructor !== Array) {
+                                vResult[options.cdataKey] = [vResult[options.cdataKey]];
+                            }
+                            vResult[options.cdataKey].push(oNode.nodeValue);
+
+                        } else {
+                            if (options.childrenAsArray) {
+                                vResult[options.cdataKey] = [];
+                                vResult[options.cdataKey].push(oNode.nodeValue);
+                            } else {
+                                vResult[options.cdataKey] = oNode.nodeValue;
+                            }
+                        }
+                    }
+                } /* nodeType is "CDATASection" (4) */
+                else if (oNode.nodeType === 3) {
+                    sCollectedTxt += oNode.nodeValue;
+                } /* nodeType is "Text" (3) */
+                else if (oNode.nodeType === 1) { /* nodeType is "Element" (1) */
+
+                    if (nLength === 0) {
+                        vResult = {};
+                    }
+
+                    // using nodeName to support browser (IE) implementation with no 'localName' property
+                    if (options.stripElemPrefix) {
+                        sProp = oNode.nodeName.replace(prefixMatch, '');
+                    } else {
+                        sProp = oNode.nodeName;
+                    }
+
+                    vContent = xmlToJSON.parseXML(oNode);
+
+                    if (vResult.hasOwnProperty(sProp)) {
+                        if (vResult[sProp].constructor !== Array) {
+                            vResult[sProp] = [vResult[sProp]];
+                        }
+                        vResult[sProp].push(vContent);
+
+                    } else {
+                        if (options.childrenAsArray) {
+                            vResult[sProp] = [];
+                            vResult[sProp].push(vContent);
+                        } else {
+                            vResult[sProp] = vContent;
+                        }
+                        nLength++;
+                    }
+                }
+            }
+        } else if (!sCollectedTxt) { // no children and no text, return null
+            if (options.childrenAsArray) {
+                vResult[options.textKey] = [];
+                vResult[options.textKey].push(null);
+            } else {
+                vResult[options.textKey] = null;
+            }
+        }
+
+        if (sCollectedTxt) {
+            if (options.grokText) {
+                var value = this.grokType(sCollectedTxt.replace(trimMatch, ''));
+                if (value !== null && value !== undefined) {
+                    vResult[options.textKey] = value;
+                }
+            } else if (options.normalize) {
+                vResult[options.textKey] = sCollectedTxt.replace(trimMatch, '').replace(/\s+/g, " ");
+            } else {
+                vResult[options.textKey] = sCollectedTxt.replace(trimMatch, '');
+            }
+        }
+
+        return vResult;
+    };
+
+
+    // Convert xmlDocument to a string
+    // Returns null on failure
+    this.xmlToString = function (xmlDoc) {
+        try {
+            var xmlString = xmlDoc.xml ? xmlDoc.xml : (new XMLSerializer()).serializeToString(xmlDoc);
+            return xmlString;
+        } catch (err) {
+            return null;
+        }
+    };
+
+    // Convert a string to XML Node Structure
+    // Returns null on failure
+    this.stringToXML = function (xmlString) {
+        try {
+            var xmlDoc = null;
+
+            if (window.DOMParser) {
+
+                var parser = new DOMParser();
+                xmlDoc = parser.parseFromString(xmlString, "text/xml");
+
+                return xmlDoc;
+            } else {
+                xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+                xmlDoc.async = false;
+                xmlDoc.loadXML(xmlString);
+
+                return xmlDoc;
+            }
+        } catch (e) {
+            return null;
+        }
+    };
+
+    return this;
+}).call({});
+
+if (module !== null && module.exports) module.exports = xmlToJSON;
+});
+
+function getAttrs(node) {
+    const attrs = node._attr;
+    return Object.keys(attrs).reduce((result, attr) => {
+        result[attr] = attrs[attr]._value;
+        return result;
+    }, {});
+}
+async function load(src) {
+    const data = await fetch(src);
+    const pack = xmlToJSON_1.parseString(await data.text());
+    return pack.PackData.map(pack => (Object.assign({}, getAttrs(pack), { players: pack.PlayerData.map(player => (Object.assign({}, getAttrs(player), { data: player.P.map(getAttrs), get(id) {
+                return this.data.find(p => p.id === id);
+            } })))[0], clubs: pack.ClubData.map(club => (Object.assign({}, getAttrs(club), { data: club.C.map(getAttrs), get(id) {
+                return this.data.find(c => c.id === id);
+            } })))[0], stadiums: pack.StadiumData.map(stadium => (Object.assign({}, getAttrs(stadium), { data: stadium.S.map(getAttrs), get(id) {
+                return this.data.find(c => c.id === id);
+            } })))[0] })))[0];
+}
+
+/*!
+ * StencilStateTunnel: Core, ES5
+ * Built with http://stenciljs.com
+ */
+function o(n,t){for(var e,r,i=null,o=!1,u=!1,f=arguments.length;f-- >2;)T.push(arguments[f]);for(;T.length>0;){var c=T.pop();if(c&&void 0!==c.pop)for(f=c.length;f--;)T.push(c[f]);else"boolean"==typeof c&&(c=null),(u="function"!=typeof n)&&(null==c?c="":"number"==typeof c?c=String(c):"string"!=typeof c&&(u=!1)),u&&o?i[i.length-1].vtext+=c:null===i?i=[u?{vtext:c}:c]:i.push(u?{vtext:c}:c),o=u;}if(null!=t){if(t.className&&(t.class=t.className),"object"==typeof t.class){for(f in t.class)t.class[f]&&T.push(f);t.class=T.join(" "),T.length=0;}null!=t.key&&(e=t.key),null!=t.name&&(r=t.name);}return "function"==typeof n?n(t,i||[],P):{vtag:n,vchildren:i,vtext:void 0,vattrs:t,vkey:e,vname:r,f:void 0,c:!1}}function u(n){return {vtag:n.vtag,vchildren:n.vchildren,vtext:n.vtext,vattrs:n.vattrs,vkey:n.vkey,vname:n.vname}}undefined&&undefined.Nn||(Object.setPrototypeOf||Array);var T=[],P={forEach:function(n,t){n.forEach(function(n,e,r){return t(u(n),e,r)});},map:function(n,t){return n.map(function(n,e,r){return function i(n){return {vtag:n.vtag,vchildren:n.vchildren,vtext:n.vtext,vattrs:n.vattrs,vkey:n.vkey,vname:n.vname}}(t(u(n),e,r))})}};
+
+// StencilStateTunnel: Host Data, ES Module/ES5 Target
+
+// StencilStateTunnel: Custom Elements Define Library, ES Module/ES5 Target
+
+/*! Built with http://stenciljs.com */
+var __rest = function (e, r) { var t = {}; for (var n in e)
+    Object.prototype.hasOwnProperty.call(e, n) && r.indexOf(n) < 0 && (t[n] = e[n]); if (null != e && "function" == typeof Object.getOwnPropertySymbols) {
+    var o$$1 = 0;
+    for (n = Object.getOwnPropertySymbols(e); o$$1 < n.length; o$$1++)
+        r.indexOf(n[o$$1]) < 0 && (t[n[o$$1]] = e[n[o$$1]]);
+} return t; };
+function defaultConsumerRender(e, r) { return o("context-consumer", { subscribe: e, renderer: r }); }
+function createProviderConsumer(e, r) {
+    if (r === void 0) { r = defaultConsumerRender; }
+    var t = new Map, n = e;
+    function o$$1(e, r) { Array.isArray(e) ? e.slice().forEach(function (e) { r[e] = n[e]; }) : r[e] = Object.assign({}, n), r.forceUpdate(); }
+    function i(e) { return function (r) { t.has(r) || (t.set(r, e), o$$1(e, r)); }; }
+    function s(e, r) { return i(r)(e), function () { t.delete(e); }; }
+    return { Provider: function (_a, r) {
+            var e = _a.state;
+            return n = e, t.forEach(o$$1), r;
+        }, Consumer: function (e, t) { return r(s, t[0]); }, wrapConsumer: function (e, r) { var t = e.is; return function (e) { var n = e.children, o$$1 = __rest(e, ["children"]); return o(t, Object.assign({ ref: i(r) }, o$$1), n); }; }, injectProps: function (e, r) { var t = null; var n = Object.keys(e.properties).find(function (r) { return 1 == e.properties[r].elementRef; }); if (null == n)
+            throw new Error("Please ensure that your Component " + e.is + " has an attribtue with \"@Element\" decorator. " + "This is required to be able to inject properties."); var o$$1 = e.prototype.componentWillLoad; e.prototype.componentWillLoad = function () { if (t = s(this[n], r), o$$1)
+            return o$$1.bind(this)(); }; var i = e.prototype.componentDidUnload; e.prototype.componentDidUnload = function () { if (t(), i)
+            return i.bind(this)(); }; } };
+}
+
+// StencilStateTunnel: ES Module
+
+var Tunnel = createProviderConsumer(null, (subscribe, child) => (h("context-consumer", { subscribe: subscribe, renderer: child })));
+
+class WFData {
+    constructor() {
+        this.src = "http://c3420952.r52.cf0.rackcdn.com/toprateddata.xml";
+    }
+    async componentWillLoad() {
+        this.data = await load(this.src);
+    }
+    render() {
+        return (h(Tunnel.Provider, { state: this.data },
+            h("slot", null)));
+    }
+    static get is() { return "winfun-data"; }
+    static get properties() { return {
+        "data": {
+            "state": true
+        },
+        "src": {
+            "type": String,
+            "attr": "src"
+        }
+    }; }
+}
 
 class WFList {
     render() {
@@ -67,4 +392,45 @@ class WFPlayer {
     static get style() { return "\@-webkit-keyframes mdc-ripple-fg-radius-in{0%{-webkit-animation-timing-function:cubic-bezier(.4,0,.2,1);animation-timing-function:cubic-bezier(.4,0,.2,1);-webkit-transform:translate(var(--mdc-ripple-fg-translate-start,0)) scale(1);transform:translate(var(--mdc-ripple-fg-translate-start,0)) scale(1)}to{-webkit-transform:translate(var(--mdc-ripple-fg-translate-end,0)) scale(var(--mdc-ripple-fg-scale,1));transform:translate(var(--mdc-ripple-fg-translate-end,0)) scale(var(--mdc-ripple-fg-scale,1))}}\@keyframes mdc-ripple-fg-radius-in{0%{-webkit-animation-timing-function:cubic-bezier(.4,0,.2,1);animation-timing-function:cubic-bezier(.4,0,.2,1);-webkit-transform:translate(var(--mdc-ripple-fg-translate-start,0)) scale(1);transform:translate(var(--mdc-ripple-fg-translate-start,0)) scale(1)}to{-webkit-transform:translate(var(--mdc-ripple-fg-translate-end,0)) scale(var(--mdc-ripple-fg-scale,1));transform:translate(var(--mdc-ripple-fg-translate-end,0)) scale(var(--mdc-ripple-fg-scale,1))}}\@-webkit-keyframes mdc-ripple-fg-opacity-in{0%{-webkit-animation-timing-function:linear;animation-timing-function:linear;opacity:0}to{opacity:var(--mdc-ripple-fg-opacity,0)}}\@keyframes mdc-ripple-fg-opacity-in{0%{-webkit-animation-timing-function:linear;animation-timing-function:linear;opacity:0}to{opacity:var(--mdc-ripple-fg-opacity,0)}}\@-webkit-keyframes mdc-ripple-fg-opacity-out{0%{-webkit-animation-timing-function:linear;animation-timing-function:linear;opacity:var(--mdc-ripple-fg-opacity,0)}to{opacity:0}}\@keyframes mdc-ripple-fg-opacity-out{0%{-webkit-animation-timing-function:linear;animation-timing-function:linear;opacity:var(--mdc-ripple-fg-opacity,0)}to{opacity:0}}.mdc-ripple-surface--test-edge-var-bug{--mdc-ripple-surface-test-edge-var:1px solid #000;visibility:hidden}.mdc-ripple-surface--test-edge-var-bug:before{border:var(--mdc-ripple-surface-test-edge-var)}.mdc-button{font-family:Roboto,sans-serif;-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased;font-size:.875rem;line-height:2.25rem;font-weight:500;letter-spacing:.08929em;text-decoration:none;text-transform:uppercase;--mdc-ripple-fg-size:0;--mdc-ripple-left:0;--mdc-ripple-top:0;--mdc-ripple-fg-scale:1;--mdc-ripple-fg-translate-end:0;--mdc-ripple-fg-translate-start:0;-webkit-tap-highlight-color:rgba(0,0,0,0);will-change:transform,opacity;padding:0 8px 0 8px;display:-ms-inline-flexbox;display:inline-flex;position:relative;-ms-flex-align:center;align-items:center;-ms-flex-pack:center;justify-content:center;-webkit-box-sizing:border-box;box-sizing:border-box;min-width:64px;height:36px;border:none;outline:none;line-height:inherit;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-appearance:none;overflow:hidden;vertical-align:middle;border-radius:4px}.mdc-button:after,.mdc-button:before{position:absolute;border-radius:50%;opacity:0;pointer-events:none;content:\"\"}.mdc-button:before{-webkit-transition:opacity 15ms linear,background-color 15ms linear;transition:opacity 15ms linear,background-color 15ms linear;z-index:1}.mdc-button.mdc-ripple-upgraded:before{-webkit-transform:scale(var(--mdc-ripple-fg-scale,1));transform:scale(var(--mdc-ripple-fg-scale,1))}.mdc-button.mdc-ripple-upgraded:after{top:0;left:0;-webkit-transform:scale(0);transform:scale(0);-webkit-transform-origin:center center;transform-origin:center center}.mdc-button.mdc-ripple-upgraded--unbounded:after{top:var(--mdc-ripple-top,0);left:var(--mdc-ripple-left,0)}.mdc-button.mdc-ripple-upgraded--foreground-activation:after{-webkit-animation:mdc-ripple-fg-radius-in 225ms forwards,mdc-ripple-fg-opacity-in 75ms forwards;animation:mdc-ripple-fg-radius-in 225ms forwards,mdc-ripple-fg-opacity-in 75ms forwards}.mdc-button.mdc-ripple-upgraded--foreground-deactivation:after{-webkit-animation:mdc-ripple-fg-opacity-out .15s;animation:mdc-ripple-fg-opacity-out .15s;-webkit-transform:translate(var(--mdc-ripple-fg-translate-end,0)) scale(var(--mdc-ripple-fg-scale,1));transform:translate(var(--mdc-ripple-fg-translate-end,0)) scale(var(--mdc-ripple-fg-scale,1))}.mdc-button:after,.mdc-button:before{top:calc(50% - 100%);left:calc(50% - 100%);width:200%;height:200%}.mdc-button.mdc-ripple-upgraded:after{width:var(--mdc-ripple-fg-size,100%);height:var(--mdc-ripple-fg-size,100%)}.mdc-button::-moz-focus-inner{padding:0;border:0}.mdc-button:active{outline:none}.mdc-button:hover{cursor:pointer}.mdc-button:disabled{background-color:transparent;color:rgba(0,0,0,.37);cursor:default;pointer-events:none}.mdc-button.mdc-button--dense{border-radius:4px}.mdc-button:not(:disabled){background-color:transparent;color:#6200ee;color:var(--mdc-theme-primary,#6200ee)}.mdc-button:after,.mdc-button:before{background-color:#6200ee}\@supports not (-ms-ime-align:auto){.mdc-button:after,.mdc-button:before{background-color:var(--mdc-theme-primary,#6200ee)}}.mdc-button:hover:before{opacity:.04}.mdc-button.mdc-ripple-upgraded--background-focused:before,.mdc-button:not(.mdc-ripple-upgraded):focus:before{-webkit-transition-duration:75ms;transition-duration:75ms;opacity:.12}.mdc-button:not(.mdc-ripple-upgraded):after{-webkit-transition:opacity .15s linear;transition:opacity .15s linear}.mdc-button:not(.mdc-ripple-upgraded):active:after{-webkit-transition-duration:75ms;transition-duration:75ms;opacity:.16}.mdc-button.mdc-ripple-upgraded{--mdc-ripple-fg-opacity:0.16}.mdc-button .mdc-button__icon{margin-left:0;margin-right:8px;display:inline-block;width:18px;height:18px;font-size:18px;vertical-align:top}.mdc-button .mdc-button__icon[dir=rtl],.mdc-button__label+.mdc-button__icon,[dir=rtl] .mdc-button .mdc-button__icon{margin-left:8px;margin-right:0}.mdc-button__label+.mdc-button__icon[dir=rtl],[dir=rtl] .mdc-button__label+.mdc-button__icon{margin-left:0;margin-right:8px}svg.mdc-button__icon{fill:currentColor}.mdc-button--outlined .mdc-button__icon,.mdc-button--raised .mdc-button__icon,.mdc-button--unelevated .mdc-button__icon{margin-left:-4px;margin-right:8px}.mdc-button--outlined .mdc-button__icon[dir=rtl],.mdc-button--outlined .mdc-button__label+.mdc-button__icon,.mdc-button--raised .mdc-button__icon[dir=rtl],.mdc-button--raised .mdc-button__label+.mdc-button__icon,.mdc-button--unelevated .mdc-button__icon[dir=rtl],.mdc-button--unelevated .mdc-button__label+.mdc-button__icon,[dir=rtl] .mdc-button--outlined .mdc-button__icon,[dir=rtl] .mdc-button--raised .mdc-button__icon,[dir=rtl] .mdc-button--unelevated .mdc-button__icon{margin-left:8px;margin-right:-4px}.mdc-button--outlined .mdc-button__label+.mdc-button__icon[dir=rtl],.mdc-button--raised .mdc-button__label+.mdc-button__icon[dir=rtl],.mdc-button--unelevated .mdc-button__label+.mdc-button__icon[dir=rtl],[dir=rtl] .mdc-button--outlined .mdc-button__label+.mdc-button__icon,[dir=rtl] .mdc-button--raised .mdc-button__label+.mdc-button__icon,[dir=rtl] .mdc-button--unelevated .mdc-button__label+.mdc-button__icon{margin-left:-4px;margin-right:8px}.mdc-button--raised,.mdc-button--unelevated{padding:0 16px 0 16px}.mdc-button--raised:disabled,.mdc-button--unelevated:disabled{background-color:rgba(0,0,0,.12);color:rgba(0,0,0,.37)}.mdc-button--raised:not(:disabled),.mdc-button--unelevated:not(:disabled){background-color:#6200ee}\@supports not (-ms-ime-align:auto){.mdc-button--raised:not(:disabled),.mdc-button--unelevated:not(:disabled){background-color:var(--mdc-theme-primary,#6200ee)}}.mdc-button--raised:not(:disabled),.mdc-button--unelevated:not(:disabled){color:#fff;color:var(--mdc-theme-on-primary,#fff)}.mdc-button--raised:after,.mdc-button--raised:before,.mdc-button--unelevated:after,.mdc-button--unelevated:before{background-color:#fff}\@supports not (-ms-ime-align:auto){.mdc-button--raised:after,.mdc-button--raised:before,.mdc-button--unelevated:after,.mdc-button--unelevated:before{background-color:var(--mdc-theme-on-primary,#fff)}}.mdc-button--raised:hover:before,.mdc-button--unelevated:hover:before{opacity:.08}.mdc-button--raised.mdc-ripple-upgraded--background-focused:before,.mdc-button--raised:not(.mdc-ripple-upgraded):focus:before,.mdc-button--unelevated.mdc-ripple-upgraded--background-focused:before,.mdc-button--unelevated:not(.mdc-ripple-upgraded):focus:before{-webkit-transition-duration:75ms;transition-duration:75ms;opacity:.24}.mdc-button--raised:not(.mdc-ripple-upgraded):after,.mdc-button--unelevated:not(.mdc-ripple-upgraded):after{-webkit-transition:opacity .15s linear;transition:opacity .15s linear}.mdc-button--raised:not(.mdc-ripple-upgraded):active:after,.mdc-button--unelevated:not(.mdc-ripple-upgraded):active:after{-webkit-transition-duration:75ms;transition-duration:75ms;opacity:.32}.mdc-button--raised.mdc-ripple-upgraded,.mdc-button--unelevated.mdc-ripple-upgraded{--mdc-ripple-fg-opacity:0.32}.mdc-button--raised{-webkit-box-shadow:0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);box-shadow:0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);-webkit-transition:-webkit-box-shadow .28s cubic-bezier(.4,0,.2,1);transition:-webkit-box-shadow .28s cubic-bezier(.4,0,.2,1);transition:box-shadow .28s cubic-bezier(.4,0,.2,1);transition:box-shadow .28s cubic-bezier(.4,0,.2,1),-webkit-box-shadow .28s cubic-bezier(.4,0,.2,1)}.mdc-button--raised:focus,.mdc-button--raised:hover{-webkit-box-shadow:0 2px 4px -1px rgba(0,0,0,.2),0 4px 5px 0 rgba(0,0,0,.14),0 1px 10px 0 rgba(0,0,0,.12);box-shadow:0 2px 4px -1px rgba(0,0,0,.2),0 4px 5px 0 rgba(0,0,0,.14),0 1px 10px 0 rgba(0,0,0,.12)}.mdc-button--raised:active{-webkit-box-shadow:0 5px 5px -3px rgba(0,0,0,.2),0 8px 10px 1px rgba(0,0,0,.14),0 3px 14px 2px rgba(0,0,0,.12);box-shadow:0 5px 5px -3px rgba(0,0,0,.2),0 8px 10px 1px rgba(0,0,0,.14),0 3px 14px 2px rgba(0,0,0,.12)}.mdc-button--raised:disabled{-webkit-box-shadow:0 0 0 0 rgba(0,0,0,.2),0 0 0 0 rgba(0,0,0,.14),0 0 0 0 rgba(0,0,0,.12);box-shadow:0 0 0 0 rgba(0,0,0,.2),0 0 0 0 rgba(0,0,0,.14),0 0 0 0 rgba(0,0,0,.12)}.mdc-button--outlined{border-style:solid;padding:0 14px 0 14px;border-width:2px}.mdc-button--outlined:disabled{border-color:rgba(0,0,0,.37)}.mdc-button--outlined:not(:disabled){border-color:#6200ee;border-color:var(--mdc-theme-primary,#6200ee)}.mdc-button--dense{height:32px;font-size:.8125rem}.mdc-icon-button{--mdc-ripple-fg-size:0;--mdc-ripple-left:0;--mdc-ripple-top:0;--mdc-ripple-fg-scale:1;--mdc-ripple-fg-translate-end:0;--mdc-ripple-fg-translate-start:0;-webkit-tap-highlight-color:rgba(0,0,0,0);will-change:transform,opacity;width:48px;height:48px;padding:12px;font-size:24px;display:inline-block;position:relative;-webkit-box-sizing:border-box;box-sizing:border-box;border:none;outline:none;background-color:transparent;fill:currentColor;color:inherit;text-decoration:none;cursor:pointer;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.mdc-icon-button:after,.mdc-icon-button:before{position:absolute;border-radius:50%;opacity:0;pointer-events:none;content:\"\"}.mdc-icon-button:before{-webkit-transition:opacity 15ms linear,background-color 15ms linear;transition:opacity 15ms linear,background-color 15ms linear;z-index:1}.mdc-icon-button.mdc-ripple-upgraded:before{-webkit-transform:scale(var(--mdc-ripple-fg-scale,1));transform:scale(var(--mdc-ripple-fg-scale,1))}.mdc-icon-button.mdc-ripple-upgraded:after{top:0;left:0;-webkit-transform:scale(0);transform:scale(0);-webkit-transform-origin:center center;transform-origin:center center}.mdc-icon-button.mdc-ripple-upgraded--unbounded:after{top:var(--mdc-ripple-top,0);left:var(--mdc-ripple-left,0)}.mdc-icon-button.mdc-ripple-upgraded--foreground-activation:after{-webkit-animation:mdc-ripple-fg-radius-in 225ms forwards,mdc-ripple-fg-opacity-in 75ms forwards;animation:mdc-ripple-fg-radius-in 225ms forwards,mdc-ripple-fg-opacity-in 75ms forwards}.mdc-icon-button.mdc-ripple-upgraded--foreground-deactivation:after{-webkit-animation:mdc-ripple-fg-opacity-out .15s;animation:mdc-ripple-fg-opacity-out .15s;-webkit-transform:translate(var(--mdc-ripple-fg-translate-end,0)) scale(var(--mdc-ripple-fg-scale,1));transform:translate(var(--mdc-ripple-fg-translate-end,0)) scale(var(--mdc-ripple-fg-scale,1))}.mdc-icon-button:after,.mdc-icon-button:before{top:calc(50% - 50%);left:calc(50% - 50%);width:100%;height:100%}.mdc-icon-button.mdc-ripple-upgraded:after,.mdc-icon-button.mdc-ripple-upgraded:before{top:var(--mdc-ripple-top,calc(50% - 50%));left:var(--mdc-ripple-left,calc(50% - 50%));width:var(--mdc-ripple-fg-size,100%);height:var(--mdc-ripple-fg-size,100%)}.mdc-icon-button.mdc-ripple-upgraded:after{width:var(--mdc-ripple-fg-size,100%);height:var(--mdc-ripple-fg-size,100%)}.mdc-icon-button img,.mdc-icon-button svg{width:24px;height:24px}.mdc-icon-button:disabled{color:rgba(0,0,0,.38);color:var(--mdc-theme-text-disabled-on-light,rgba(0,0,0,.38));cursor:default;pointer-events:none}.mdc-icon-button:after,.mdc-icon-button:before{background-color:#000}.mdc-icon-button:hover:before{opacity:.04}.mdc-icon-button.mdc-ripple-upgraded--background-focused:before,.mdc-icon-button:not(.mdc-ripple-upgraded):focus:before{-webkit-transition-duration:75ms;transition-duration:75ms;opacity:.12}.mdc-icon-button:not(.mdc-ripple-upgraded):after{-webkit-transition:opacity .15s linear;transition:opacity .15s linear}.mdc-icon-button:not(.mdc-ripple-upgraded):active:after{-webkit-transition-duration:75ms;transition-duration:75ms;opacity:.16}.mdc-icon-button.mdc-ripple-upgraded{--mdc-ripple-fg-opacity:0.16}.mdc-icon-button__icon{display:inline-block}.mdc-icon-button--on .mdc-icon-button__icon,.mdc-icon-button__icon.mdc-icon-button__icon--on{display:none}.mdc-icon-button--on .mdc-icon-button__icon.mdc-icon-button__icon--on{display:inline-block}.mdc-card{background-color:#fff;background-color:var(--mdc-theme-surface,#fff);border-radius:4px;-webkit-box-shadow:0 2px 1px -1px rgba(0,0,0,.2),0 1px 1px 0 rgba(0,0,0,.14),0 1px 3px 0 rgba(0,0,0,.12);box-shadow:0 2px 1px -1px rgba(0,0,0,.2),0 1px 1px 0 rgba(0,0,0,.14),0 1px 3px 0 rgba(0,0,0,.12);display:-ms-flexbox;display:flex;-ms-flex-direction:column;flex-direction:column;-webkit-box-sizing:border-box;box-sizing:border-box}.mdc-card--outlined{-webkit-box-shadow:0 0 0 0 rgba(0,0,0,.2),0 0 0 0 rgba(0,0,0,.14),0 0 0 0 rgba(0,0,0,.12);box-shadow:0 0 0 0 rgba(0,0,0,.2),0 0 0 0 rgba(0,0,0,.14),0 0 0 0 rgba(0,0,0,.12);border:1px solid #e0e0e0}.mdc-card__media{position:relative;-webkit-box-sizing:border-box;box-sizing:border-box;background-repeat:no-repeat;background-position:50%;background-size:cover}.mdc-card__media:before{display:block;content:\"\"}.mdc-card__media:first-child{border-top-left-radius:inherit;border-top-right-radius:inherit}.mdc-card__media:last-child{border-bottom-left-radius:inherit;border-bottom-right-radius:inherit}.mdc-card__media--square:before{margin-top:100%}.mdc-card__media--16-9:before{margin-top:56.25%}.mdc-card__media-content{position:absolute;top:0;right:0;bottom:0;left:0}.mdc-card__media-content,.mdc-card__primary-action{-webkit-box-sizing:border-box;box-sizing:border-box}.mdc-card__primary-action{--mdc-ripple-fg-size:0;--mdc-ripple-left:0;--mdc-ripple-top:0;--mdc-ripple-fg-scale:1;--mdc-ripple-fg-translate-end:0;--mdc-ripple-fg-translate-start:0;-webkit-tap-highlight-color:rgba(0,0,0,0);will-change:transform,opacity;display:-ms-flexbox;display:flex;-ms-flex-direction:column;flex-direction:column;position:relative;outline:none;color:inherit;text-decoration:none;cursor:pointer;overflow:hidden}.mdc-card__primary-action:after,.mdc-card__primary-action:before{position:absolute;border-radius:50%;opacity:0;pointer-events:none;content:\"\"}.mdc-card__primary-action:before{-webkit-transition:opacity 15ms linear,background-color 15ms linear;transition:opacity 15ms linear,background-color 15ms linear;z-index:1}.mdc-card__primary-action.mdc-ripple-upgraded:before{-webkit-transform:scale(var(--mdc-ripple-fg-scale,1));transform:scale(var(--mdc-ripple-fg-scale,1))}.mdc-card__primary-action.mdc-ripple-upgraded:after{top:0;left:0;-webkit-transform:scale(0);transform:scale(0);-webkit-transform-origin:center center;transform-origin:center center}.mdc-card__primary-action.mdc-ripple-upgraded--unbounded:after{top:var(--mdc-ripple-top,0);left:var(--mdc-ripple-left,0)}.mdc-card__primary-action.mdc-ripple-upgraded--foreground-activation:after{-webkit-animation:mdc-ripple-fg-radius-in 225ms forwards,mdc-ripple-fg-opacity-in 75ms forwards;animation:mdc-ripple-fg-radius-in 225ms forwards,mdc-ripple-fg-opacity-in 75ms forwards}.mdc-card__primary-action.mdc-ripple-upgraded--foreground-deactivation:after{-webkit-animation:mdc-ripple-fg-opacity-out .15s;animation:mdc-ripple-fg-opacity-out .15s;-webkit-transform:translate(var(--mdc-ripple-fg-translate-end,0)) scale(var(--mdc-ripple-fg-scale,1));transform:translate(var(--mdc-ripple-fg-translate-end,0)) scale(var(--mdc-ripple-fg-scale,1))}.mdc-card__primary-action:after,.mdc-card__primary-action:before{top:calc(50% - 100%);left:calc(50% - 100%);width:200%;height:200%}.mdc-card__primary-action.mdc-ripple-upgraded:after{width:var(--mdc-ripple-fg-size,100%);height:var(--mdc-ripple-fg-size,100%)}.mdc-card__primary-action:after,.mdc-card__primary-action:before{background-color:#000}.mdc-card__primary-action:hover:before{opacity:.04}.mdc-card__primary-action.mdc-ripple-upgraded--background-focused:before,.mdc-card__primary-action:not(.mdc-ripple-upgraded):focus:before{-webkit-transition-duration:75ms;transition-duration:75ms;opacity:.12}.mdc-card__primary-action:not(.mdc-ripple-upgraded):after{-webkit-transition:opacity .15s linear;transition:opacity .15s linear}.mdc-card__primary-action:not(.mdc-ripple-upgraded):active:after{-webkit-transition-duration:75ms;transition-duration:75ms;opacity:.16}.mdc-card__primary-action.mdc-ripple-upgraded{--mdc-ripple-fg-opacity:0.16}.mdc-card__primary-action:first-child{border-top-left-radius:inherit;border-top-right-radius:inherit}.mdc-card__primary-action:last-child{border-bottom-left-radius:inherit;border-bottom-right-radius:inherit}.mdc-card__actions{display:-ms-flexbox;display:flex;-ms-flex-direction:row;flex-direction:row;-ms-flex-align:center;align-items:center;-webkit-box-sizing:border-box;box-sizing:border-box;min-height:52px;padding:8px}.mdc-card__actions--full-bleed{padding:0}.mdc-card__action-buttons,.mdc-card__action-icons{display:-ms-flexbox;display:flex;-ms-flex-direction:row;flex-direction:row;-ms-flex-align:center;align-items:center;-webkit-box-sizing:border-box;box-sizing:border-box}.mdc-card__action-icons{color:rgba(0,0,0,.38);color:var(--mdc-theme-text-icon-on-background,rgba(0,0,0,.38));-ms-flex-positive:1;flex-grow:1;-ms-flex-pack:end;justify-content:flex-end}.mdc-card__action-buttons+.mdc-card__action-icons{margin-left:16px;margin-right:0}.mdc-card__action-buttons+.mdc-card__action-icons[dir=rtl],[dir=rtl] .mdc-card__action-buttons+.mdc-card__action-icons{margin-left:0;margin-right:16px}.mdc-card__action{display:-ms-inline-flexbox;display:inline-flex;-ms-flex-direction:row;flex-direction:row;-ms-flex-align:center;align-items:center;-webkit-box-sizing:border-box;box-sizing:border-box;-ms-flex-pack:center;justify-content:center;cursor:pointer;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.mdc-card__action:focus{outline:none}.mdc-card__action--button{margin-left:0;margin-right:8px;padding:0 8px}.mdc-card__action--button[dir=rtl],[dir=rtl] .mdc-card__action--button{margin-left:8px;margin-right:0}.mdc-card__action--button:last-child,.mdc-card__action--button:last-child[dir=rtl],[dir=rtl] .mdc-card__action--button:last-child{margin-left:0;margin-right:0}.mdc-card__actions--full-bleed .mdc-card__action--button{-ms-flex-pack:justify;justify-content:space-between;width:100%;height:auto;max-height:none;margin:0;padding:8px 16px;text-align:left}.mdc-card__actions--full-bleed .mdc-card__action--button[dir=rtl],[dir=rtl] .mdc-card__actions--full-bleed .mdc-card__action--button{text-align:right}.mdc-card__action--icon{margin:-6px 0;padding:12px}.mdc-card__action--icon:not(:disabled){color:rgba(0,0,0,.38);color:var(--mdc-theme-text-icon-on-background,rgba(0,0,0,.38))}.mdc-card__media-content{padding:1rem}.mdc-button[aria-pressed=true] .mdc-button__icon{fill:red}"; }
 }
 
-export { WFList as WinfunList, WFPlayer as WinfunPlayer };
+class ContextConsumer$1 {
+    constructor() {
+        this.context = {};
+        this.renderer = (props) => {
+            return null;
+        };
+    }
+    componentWillLoad() {
+        this.unsubscribe = this.subscribe(this.el, "context");
+    }
+    componentDidUnload() {
+        this.unsubscribe();
+    }
+    render() {
+        return this.renderer(Object.assign({}, this.context));
+    }
+    static get is() { return "context-consumer"; }
+    static get properties() {
+        return {
+            "context": {
+                "type": "Any",
+                "attr": "context"
+            },
+            "el": {
+                "elementRef": true
+            },
+            "renderer": {
+                "type": "Any",
+                "attr": "renderer"
+            },
+            "subscribe": {
+                "type": "Any",
+                "attr": "subscribe"
+            },
+            "unsubscribe": {
+                "state": true
+            }
+        };
+    }
+}
+
+export { WFData as WinfunData, WFList as WinfunList, WFPlayer as WinfunPlayer, ContextConsumer$1 as ContextConsumer };
